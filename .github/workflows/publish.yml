@@ -1,0 +1,72 @@
+# Install as .github/workflows/publish.yml in the public BarDrop-releases repo.
+name: Publish Bardrop
+run-name: Approve Bardrop ${{ github.event.client_payload.tag }}
+
+on:
+  repository_dispatch:
+    types: [bardrop-release]
+
+permissions: {}
+
+jobs:
+  publish:
+    if: github.repository == 'mistercr0wbar/BarDrop-releases' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: release
+    permissions:
+      contents: write
+    concurrency:
+      group: bardrop-publish
+      queue: max
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify the approved draft and publish
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+
+          def gh(*args, **kwargs):
+              return subprocess.check_output(["gh", *args], text=True, **kwargs)
+
+          def version(tag):
+              return tuple(map(int, tag[1:].split(".")))
+
+          stable_tag = re.compile(r"v(0|[1-9][0-9]{0,4})(\.(0|[1-9][0-9]{0,4})){2}")
+          repo = os.environ["GITHUB_REPOSITORY"]
+          event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+          payload = event["client_payload"]
+          tag = payload["tag"]
+          if not stable_tag.fullmatch(tag):
+              raise SystemExit("Expected a stable version tag.")
+          release_id = payload["release_id"]
+          if type(release_id) is not int or release_id <= 0:
+              raise SystemExit("Expected a valid draft release ID.")
+          expected = payload["assets"]
+          names = {f"BarDrop-{tag[1:]}-Setup.exe", "BarDrop.zip", "BarDrop.exe", "bardrop-update.json"}
+          if expected.keys() != names or not all(re.fullmatch(r"sha256:[0-9a-f]{64}", d) for d in expected.values()):
+              raise SystemExit("Expected the four tested assets and their SHA-256 digests.")
+
+          endpoint = f"repos/{repo}/releases"
+          draft = json.loads(gh("api", f"{endpoint}/{release_id}"))
+          actual = {asset["name"]: asset["digest"] for asset in draft["assets"] if asset["state"] == "uploaded"}
+          if (draft["tag_name"] != tag or draft["prerelease"]
+                  or actual != expected or len(draft["assets"]) != len(expected)):
+              raise SystemExit("The release no longer matches the draft submitted for approval.")
+          if not draft["draft"]:
+              print(draft["html_url"])
+              raise SystemExit(0)
+
+          tags = gh("api", "--paginate", endpoint,
+                    "--jq", ".[] | select(.draft == false and .prerelease == false) | .tag_name")
+          if any(version(old) >= version(tag) for old in tags.splitlines() if stable_tag.fullmatch(old)):
+              raise SystemExit("A newer stable release is already available. The draft is still unpublished.")
+          published = json.loads(gh("api", "--method", "PATCH", f"{endpoint}/{release_id}", "--input", "-",
+                                   input=json.dumps({"draft": False, "make_latest": "true"})))
+          print(published["html_url"])
+          PY
