@@ -18,3 +18,10 @@ corresponding FFmpeg source and build recipe.
 
 Signed update verification is separate from Authenticode publisher signing.
 The application currently has no Windows publisher certificate.
+
+## Publication
+
+Releases are verified and uploaded directly from the locally tested build by
+the private source repository's release command. GitHub Actions is disabled;
+this repository has no hosted publishing workflow. Published binaries and
+previous releases are never replaced.
