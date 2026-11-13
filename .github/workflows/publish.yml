@@ -1,6 +1,6 @@
 # Install as .github/workflows/publish.yml in the public BarDrop-releases repo.
 name: Publish Bardrop
-run-name: Approve Bardrop ${{ github.event.client_payload.tag }}
+run-name: Publish Bardrop ${{ github.event.client_payload.tag }}
 
 on:
   repository_dispatch:
@@ -22,7 +22,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Verify the approved draft and publish
+      - name: Verify the staged draft and publish
         run: |
           python3 - <<'PY'
           import json
@@ -57,7 +57,7 @@ jobs:
           actual = {asset["name"]: asset["digest"] for asset in draft["assets"] if asset["state"] == "uploaded"}
           if (draft["tag_name"] != tag or draft["prerelease"]
                   or actual != expected or len(draft["assets"]) != len(expected)):
-              raise SystemExit("The release no longer matches the draft submitted for approval.")
+              raise SystemExit("The release no longer matches the draft submitted for publication.")
           if not draft["draft"]:
               print(draft["html_url"])
               raise SystemExit(0)
