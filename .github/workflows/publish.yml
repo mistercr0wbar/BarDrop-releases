@@ -1,23 +1,23 @@
-# Install as .github/workflows/publish.yml in the public BarDrop-releases repo.
-name: Publish Bardrop
-run-name: Publish Bardrop ${{ github.event.client_payload.tag }}
+# Install unchanged in both Barscene-releases and BarDrop-releases.
+name: Publish Barscene
+run-name: Publish Barscene ${{ github.event.client_payload.tag }}
 
 on:
   repository_dispatch:
-    types: [bardrop-release]
+    types: [barscene-release]
 
 permissions: {}
 
 jobs:
   publish:
-    if: github.repository == 'mistercr0wbar/BarDrop-releases' && github.ref == 'refs/heads/main'
+    if: (github.repository == 'mistercr0wbar/Barscene-releases' || github.repository == 'mistercr0wbar/BarDrop-releases') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: release
     permissions:
       contents: write
     concurrency:
-      group: bardrop-publish
+      group: barscene-publish
       queue: max
     env:
       GH_TOKEN: ${{ github.token }}
@@ -48,9 +48,12 @@ jobs:
           if type(release_id) is not int or release_id <= 0:
               raise SystemExit("Expected a valid draft release ID.")
           expected = payload["assets"]
-          names = {f"BarDrop-{tag[1:]}-Setup.exe", "BarDrop.zip", "BarDrop.exe", "bardrop-update.json"}
+          prefix = "Barscene" if repo == "mistercr0wbar/Barscene-releases" else "BarDrop"
+          feed = "barscene-update.json" if prefix == "Barscene" else "bardrop-update.json"
+          names = {f"{prefix}-{tag[1:]}-Setup.exe", f"{prefix}.zip", f"{prefix}.exe", feed,
+                   "Third-Party-Notices.txt", "ffmpeg-9.0.2-source.tar.xz", "FFmpeg-SHA256SUMS", "build-ffmpeg.sh"}
           if expected.keys() != names or not all(re.fullmatch(r"sha256:[0-9a-f]{64}", d) for d in expected.values()):
-              raise SystemExit("Expected the four tested assets and their SHA-256 digests.")
+              raise SystemExit("Expected the exact tested assets and their SHA-256 digests.")
 
           endpoint = f"repos/{repo}/releases"
           draft = json.loads(gh("api", f"{endpoint}/{release_id}"))

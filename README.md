@@ -1,7 +1,20 @@
-# Bardrop
+# Bardrop upgrade bridge
 
-Bardrop is a Windows screen recorder and GIF editor made by Bardev.
+Bardrop is becoming **Barscene**, a GIF and short-video editor for Windows,
+made by Bardevco.
 
-[Download Bardrop for Windows](https://github.com/mistercr0wbar/BarDrop-releases/releases/latest).
-Choose Setup to install or the ZIP for portable use. Installed copies check
-for updates in the app.
+[Barscene product page](https://bardevco.com/apps/barscene) ·
+[Canonical Barscene downloads](https://github.com/mistercr0wbar/Barscene-releases/releases)
+
+This repository keeps the original update channel available to existing
+Bardrop installations. The transition release uses the old installer and
+feed filenames while installing the same Barscene build. Existing settings
+and library locations are retained; Barscene uses its new channel for later
+updates. All previous Bardrop release assets remain available.
+
+The new canonical channel includes installers, portable and standalone
+downloads, release notes, signed update feeds, third-party notices and the
+corresponding FFmpeg source and build recipe.
+
+Signed update verification is separate from Authenticode publisher signing.
+The application currently has no Windows publisher certificate.
